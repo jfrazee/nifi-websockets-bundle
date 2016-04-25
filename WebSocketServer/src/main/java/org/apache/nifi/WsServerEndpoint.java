@@ -39,7 +39,7 @@ public class WsServerEndpoint {
         // start the scheduler on the very first connection
         // to call sendTimeToAll every second
         if (allSessions.size()==1){
-            timer.scheduleAtFixedRate(() -> sendTimeToAll(session),0,1,TimeUnit.SECONDS);
+            timer.scheduleAtFixedRate(() -> sendTimeToAll(session),0,10,TimeUnit.SECONDS);
         }
     }
 
@@ -59,5 +59,21 @@ public class WsServerEndpoint {
     @OnClose
     public void onClose(Session session, CloseReason closeReason) {
         logger.info(String.format("Session %s closed because of %s", session.getId(), closeReason));
+    }
+
+    @OnMessage
+    public void onMessage(String message, Session session) {
+        logger.info("Received message: " + message);
+        for (Session s : session.getOpenSessions()) {
+            if (!session.getId().equals(s.getId())) {
+                try {
+                    logger.info("Sending to session: " + s.getId());
+                    s.getBasicRemote().sendText(message  + "\r\n");
+                }
+                catch (IOException ioe) {
+                    logger.info(ioe.getMessage());
+                }
+            }
+        }
     }
 }
